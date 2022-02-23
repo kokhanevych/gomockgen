@@ -12,11 +12,12 @@ import (
 // Importer resolves import paths to packages.
 type Importer struct {
 	types.Importer
+	qualifier types.Qualifier
 }
 
 // New returns an Importer for importing directly from the source.
-func New() *Importer {
-	return &Importer{importer.ForCompiler(token.NewFileSet(), "source", nil)}
+func New(qf types.Qualifier) *Importer {
+	return &Importer{importer.ForCompiler(token.NewFileSet(), "source", nil), qf}
 }
 
 // Parse returns the package for the given import path with filtered interfaces.
@@ -107,7 +108,7 @@ func (im *Importer) toMethod(f *types.Func) internal.Method {
 func (im *Importer) toVariable(v *types.Var) internal.Variable {
 	return internal.Variable{
 		Name: v.Name(),
-		Type: types.TypeString(v.Type(), nil),
+		Type: types.TypeString(v.Type(), im.qualifier),
 	}
 }
 
