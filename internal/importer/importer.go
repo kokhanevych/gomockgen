@@ -94,11 +94,11 @@ func (im *Importer) toMethod(f *types.Func) internal.Method {
 		Variadic: s.Variadic(),
 	}
 
-	for i := 0; i < len(r.Parameters); i++ {
+	for i := 0; i < s.Params().Len(); i++ {
 		r.Parameters = append(r.Parameters, im.toVariable(s.Params().At(i)))
 	}
 
-	for i := 0; i < len(r.Results); i++ {
+	for i := 0; i < s.Results().Len(); i++ {
 		r.Results = append(r.Results, im.toVariable(s.Results().At(i)))
 	}
 
