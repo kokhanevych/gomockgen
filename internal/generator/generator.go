@@ -2,6 +2,8 @@ package generator
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/kokhanevych/gomockgen/internal"
@@ -12,14 +14,20 @@ type Parser interface {
 	Parse(importPath string, interfaces ...string) (internal.Package, error)
 }
 
+// Renderer allows mock implementation rendering.
+type Renderer interface {
+	Render(io.Writer, internal.Package) error
+}
+
 // Generator generates mock implementations of Go interfaces.
 type Generator struct {
-	parser Parser
+	parser   Parser
+	renderer Renderer
 }
 
 // New returns a new generator.
-func New(p Parser) *Generator {
-	return &Generator{p}
+func New(p Parser, r Renderer) *Generator {
+	return &Generator{p, r}
 }
 
 // Generate generates mock implementations of the specified Go interfaces for the given import path.
@@ -44,5 +52,5 @@ func (g *Generator) Generate(importPath string, interfaces ...string) error {
 		}
 	}
 
-	return nil
+	return g.renderer.Render(os.Stdout, pkg)
 }

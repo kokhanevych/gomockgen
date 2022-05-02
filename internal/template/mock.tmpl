@@ -1,0 +1,46 @@
+package {{.Name}}
+
+import (	
+	"github.com/stretchr/testify/mock"
+{{- range $index, $import := .Imports}}
+	"{{$import.Path}}"{{end}}
+)
+
+{{range $index, $interface := .Interfaces}}
+// {{$interface.Name}} is a mock.
+type {{$interface.Name}} struct { mock.Mock }
+
+{{range $index, $method := .Methods}}
+{{- with $method}}
+// {{.Name}} is a mocked method on {{$interface.Name}}.
+func (m *{{$interface.Name}}) {{.Name}}({{range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}} {{$p.Type}}{{end}}) ({{range $index, $r := .Results}}{{if $index}}, {{end}}{{$r.Type}}{{end}}) {
+{{if .Results}}args := {{end}}m.Called({{range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}}{{end}})
+{{- if .Results}}
+	return {{range $index, $r := .Results}}
+		{{- if $index}}, {{end}}
+		{{- if eq $r.Type "bool"}}args.Bool({{$index}})
+		{{- else if eq $r.Type "error"}}args.Error({{$index}})
+		{{- else if eq $r.Type "int"}}args.Int({{$index}})
+		{{- else if eq $r.Type "string"}}args.Int({{$index}})
+		{{- else}}args.Get({{$index}}).({{$r.Type}}){{end}}
+	{{- end}}
+{{- end}}
+}
+{{- end}}
+{{end}}
+
+// {{$interface.Name}}Expectations describes expectations onto the mocked interface.
+type {{$interface.Name}}Expectations func(*{{$interface.Name}})
+
+// New{{$interface.Name}} returns a new {{$interface.Name}} mock.
+func New{{$interface.Name}}(expect ...{{$interface.Name}}Expectations) *{{$interface.Name}} {
+	m := &{{$interface.Name}}{}
+	for _, e := range expect {
+		if e != nil {
+			e(m)
+		}
+	}
+	return m
+}
+
+{{end}}
