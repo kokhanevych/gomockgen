@@ -1,10 +1,13 @@
 package generator
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"golang.org/x/tools/imports"
 
 	"github.com/kokhanevych/gomockgen/internal"
 )
@@ -32,9 +35,31 @@ func New(p Parser, r Renderer) *Generator {
 
 // Generate generates mock implementations of the specified Go interfaces for the given import path.
 func (g *Generator) Generate(importPath string, interfaces ...string) error {
-	pkg, err := g.parser.Parse(importPath, interfaces...)
+	pkg, err := g.parse(importPath, interfaces...)
 	if err != nil {
 		return err
+	}
+
+	var b bytes.Buffer
+
+	if err := g.renderer.Render(&b, pkg); err != nil {
+		return err
+	}
+
+	r, err := imports.Process("", b.Bytes(), nil)
+	if err != nil {
+		return err
+	}
+
+	os.Stdout.Write(r)
+
+	return nil
+}
+
+func (g *Generator) parse(importPath string, interfaces ...string) (internal.Package, error) {
+	pkg, err := g.parser.Parse(importPath, interfaces...)
+	if err != nil {
+		return internal.Package{}, err
 	}
 
 	for _, i := range pkg.Interfaces {
@@ -52,5 +77,5 @@ func (g *Generator) Generate(importPath string, interfaces ...string) error {
 		}
 	}
 
-	return g.renderer.Render(os.Stdout, pkg)
+	return pkg, nil
 }
