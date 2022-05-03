@@ -22,6 +22,13 @@ type Renderer interface {
 	Render(io.Writer, internal.Package) error
 }
 
+// Options represent a set of options to use when generating mock implementations.
+type Options struct {
+	MockPackage string
+	MockNames   map[string]string
+	FileName    string
+}
+
 // Generator generates mock implementations of Go interfaces.
 type Generator struct {
 	parser   Parser
@@ -34,8 +41,8 @@ func New(p Parser, r Renderer) *Generator {
 }
 
 // Generate generates mock implementations of the specified Go interfaces for the given import path.
-func (g *Generator) Generate(importPath string, interfaces ...string) error {
-	pkg, err := g.parse(importPath, interfaces...)
+func (g *Generator) Generate(importPath string, options Options, interfaces ...string) error {
+	pkg, err := g.parse(importPath, options, interfaces...)
 	if err != nil {
 		return err
 	}
@@ -46,7 +53,7 @@ func (g *Generator) Generate(importPath string, interfaces ...string) error {
 		return err
 	}
 
-	r, err := imports.Process("", b.Bytes(), nil)
+	r, err := imports.Process(options.FileName, b.Bytes(), nil)
 	if err != nil {
 		return err
 	}
@@ -56,14 +63,22 @@ func (g *Generator) Generate(importPath string, interfaces ...string) error {
 	return nil
 }
 
-func (g *Generator) parse(importPath string, interfaces ...string) (internal.Package, error) {
+func (g *Generator) parse(importPath string, options Options, interfaces ...string) (internal.Package, error) {
 	pkg, err := g.parser.Parse(importPath, interfaces...)
 	if err != nil {
 		return internal.Package{}, err
 	}
 
-	for _, i := range pkg.Interfaces {
-		for _, m := range i.Methods {
+	if options.MockPackage != "" {
+		pkg.Name = options.MockPackage
+	}
+
+	for i, iface := range pkg.Interfaces {
+		if options.MockNames[iface.Name] != "" {
+			pkg.Interfaces[i].Name = options.MockNames[iface.Name]
+		}
+
+		for _, m := range iface.Methods {
 			if m.Variadic {
 				l := len(m.Parameters)
 				m.Parameters[l-1].Type = strings.Replace(m.Parameters[l-1].Type, "[]", "...", 1)
