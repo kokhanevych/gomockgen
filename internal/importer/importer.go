@@ -61,7 +61,7 @@ func (im *Importer) lookup(pkg *types.Package, interfaceNames []string) ([]inter
 			return nil, fmt.Errorf("interface %s missing", n)
 		}
 
-		if types.IsInterface(obj.Type()) {
+		if _, ok := obj.(*types.TypeName); ok && types.IsInterface(obj.Type()) {
 			iface := obj.Type().Underlying().(*types.Interface).Complete()
 			ifaces = append(ifaces, im.toInterface(n, iface))
 		} else if len(interfaceNames) > 0 {
