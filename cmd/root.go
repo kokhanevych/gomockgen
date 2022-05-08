@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"go/types"
@@ -67,8 +67,7 @@ func init() {
 	cmd.Flags().StringVarP(&options.MockPackage, "package", "p", "", "package of the generated code (default is the package of the interfaces)")
 }
 
-func main() {
-	if err := cmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+// Execute executes the root command.
+func Execute() error {
+	return cmd.Execute()
 }
