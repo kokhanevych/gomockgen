@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"golang.org/x/tools/imports"
@@ -41,7 +40,7 @@ func New(p Parser, r Renderer) *Generator {
 }
 
 // Generate generates mock implementations of the specified Go interfaces for the given import path.
-func (g *Generator) Generate(importPath string, options Options, interfaces ...string) error {
+func (g *Generator) Generate(importPath string, out io.Writer, options Options, interfaces ...string) error {
 	pkg, err := g.parse(importPath, options, interfaces...)
 	if err != nil {
 		return err
@@ -58,7 +57,7 @@ func (g *Generator) Generate(importPath string, options Options, interfaces ...s
 		return err
 	}
 
-	os.Stdout.Write(r)
+	out.Write(r)
 
 	return nil
 }
