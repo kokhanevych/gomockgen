@@ -16,6 +16,16 @@ type Template struct {
 	*template.Template
 }
 
+// New returns a new template.
+func New(fileName string) (*Template, error) {
+	tmpl, err := template.ParseFiles(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Template{tmpl}, nil
+}
+
 // Default returns the default template.
 func Default() (*Template, error) {
 	tmpl, err := template.New("mock").Parse(defaultTemplate)
