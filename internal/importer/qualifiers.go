@@ -17,6 +17,17 @@ func NewImportPathQualifier(importPath string) types.Qualifier {
 	}
 }
 
+// NewPackageNameQualifier returns a new qualifier using the package name.
+func NewPackageNameQualifier(name string) types.Qualifier {
+	return func(pkg *types.Package) string {
+		if pkg.Name() == name {
+			return ""
+		}
+
+		return pkg.Name()
+	}
+}
+
 // NewImportPathQualifier returns a new qualifier using the package directory.
 func NewDirectoryQualifier(dir string) (types.Qualifier, error) {
 	dir, err := filepath.Abs(dir)

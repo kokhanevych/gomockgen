@@ -26,9 +26,8 @@ var cmd = &cobra.Command{
 		importPath := args[0]
 		out := os.Stdout
 
-		if options.FileName == "" {
-			qf = importer.NewImportPathQualifier(importPath)
-		} else {
+		switch {
+		case options.FileName != "":
 			dir := filepath.Dir(options.FileName)
 
 			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -45,6 +44,10 @@ var cmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+		case options.MockPackage != "":
+			qf = importer.NewPackageNameQualifier(options.MockPackage)
+		default:
+			qf = importer.NewImportPathQualifier(importPath)
 		}
 
 		i := importer.New(qf)
