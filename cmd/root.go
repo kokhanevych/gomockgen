@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"go/types"
 	"os"
 	"path/filepath"
@@ -22,35 +23,12 @@ var cmd = &cobra.Command{
 	Short: "Mock generator for Go interfaces based on text/template",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		var qf types.Qualifier
 		importPath := args[0]
-		out := os.Stdout
 
-		switch {
-		case options.FileName != "":
-			dir := filepath.Dir(options.FileName)
-
-			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-				return err
-			}
-
-			out, err = os.Create(options.FileName)
-			if err != nil {
-				return err
-			}
-			defer out.Close()
-
-			qf, err = importer.NewDirectoryQualifier(dir)
-			if err != nil {
-				return err
-			}
-		case options.MockPackage != "":
-			qf = importer.NewPackageNameQualifier(options.MockPackage)
-		default:
-			qf = importer.NewImportPathQualifier(importPath)
+		i, err := newImporter(importPath, options.FileName, options.MockPackage)
+		if err != nil {
+			return err
 		}
-
-		i := importer.New(qf)
 
 		t, err := newTemplate(templateFileName)
 		if err != nil {
@@ -59,11 +37,12 @@ var cmd = &cobra.Command{
 
 		g := generator.New(i, t)
 
-		if err := g.Generate(importPath, out, options, args[1:]...); err != nil {
+		var b bytes.Buffer
+		if err := g.Generate(importPath, &b, options, args[1:]...); err != nil {
 			return err
 		}
 
-		return nil
+		return write(options.FileName, b.Bytes())
 	},
 }
 
@@ -79,10 +58,42 @@ func Execute() error {
 	return cmd.Execute()
 }
 
+func newImporter(importPath, fileName, mockPackage string) (i *importer.Importer, err error) {
+	var qf types.Qualifier
+
+	switch {
+	case fileName != "":
+		qf, err = importer.NewDirectoryQualifier(filepath.Dir(fileName))
+		if err != nil {
+			return nil, err
+		}
+	case mockPackage != "":
+		qf = importer.NewPackageNameQualifier(mockPackage)
+	default:
+		qf = importer.NewImportPathQualifier(importPath)
+	}
+
+	return importer.New(qf), nil
+}
+
 func newTemplate(fileName string) (*template.Template, error) {
 	if fileName == "" {
 		return template.Default()
 	}
 
-	return template.New(templateFileName)
+	return template.New(fileName)
+}
+
+func write(fileName string, data []byte) error {
+	if fileName != "" {
+		if err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm); err != nil {
+			return err
+		}
+
+		return os.WriteFile(fileName, data, 0666)
+	}
+
+	_, err := os.Stdout.Write(data)
+
+	return err
 }
