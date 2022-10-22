@@ -2,16 +2,15 @@ package {{.Name}}
 
 import (	
 	"github.com/stretchr/testify/mock"
-{{- range $index, $import := .Imports}}
-	"{{$import.Path}}"{{end}}
+{{- range .Imports}}
+	"{{.Path}}"{{end}}
 )
 
-{{range $index, $interface := .Interfaces}}
-// {{$interface.Name}} is a mock.
-type {{$interface.Name}} struct { mock.Mock }
+{{range $interface := .Interfaces}}
+// {{.Name}} is a mock.
+type {{.Name}} struct { mock.Mock }
 
-{{range $index, $method := .Methods}}
-{{- with $method}}
+{{range .Methods}}
 // {{.Name}} is a mocked method on {{$interface.Name}}.
 func (m *{{$interface.Name}}) {{.Name}}({{range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}} {{$p.Type}}{{end}}) ({{range $index, $r := .Results}}{{if $index}}, {{end}}{{$r.Type}}{{end}}) {
 {{if .Results}}args := {{end}}m.Called({{range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}}{{end}})
@@ -26,7 +25,6 @@ func (m *{{$interface.Name}}) {{.Name}}({{range $index, $p := .Parameters}}{{if 
 	{{- end}}
 {{- end}}
 }
-{{- end}}
 {{end}}
 
 // {{$interface.Name}}Expectations describes expectations onto the mocked interface.
