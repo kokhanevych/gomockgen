@@ -18,14 +18,15 @@ type Parser interface {
 
 // Renderer allows mock implementation rendering.
 type Renderer interface {
-	Render(io.Writer, internal.Package) error
+	Render(w io.Writer, p internal.Package, substitutions map[string]string) error
 }
 
 // Options represent a set of options to use when generating mock implementations.
 type Options struct {
-	MockPackage string
-	MockNames   map[string]string
-	FileName    string
+	MockPackage   string
+	MockNames     map[string]string
+	FileName      string
+	Substitutions map[string]string
 }
 
 // Generator generates mock implementations of Go interfaces.
@@ -48,7 +49,7 @@ func (g *Generator) Generate(importPath string, out io.Writer, options Options, 
 
 	var b bytes.Buffer
 
-	if err := g.renderer.Render(&b, pkg); err != nil {
+	if err := g.renderer.Render(&b, pkg, options.Substitutions); err != nil {
 		return err
 	}
 

@@ -51,6 +51,7 @@ func init() {
 	cmd.Flags().StringVarP(&options.FileName, "out", "o", "", "output file instead of stdout")
 	cmd.Flags().StringVarP(&options.MockPackage, "package", "p", "", "package of the generated code (default is the package of the interfaces)")
 	cmd.Flags().StringVarP(&templateFileName, "template", "t", "", "template file used to generate the mock (default is the testify template)")
+	cmd.Flags().StringToStringVarP(&options.Substitutions, "substitutions", "s", nil, "comma-separated key=value pairs of substitutions to make when expanding the template")
 }
 
 // Execute executes the root command.

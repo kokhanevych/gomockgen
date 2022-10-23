@@ -11,6 +11,11 @@ import (
 //go:embed mock.tmpl
 var defaultTemplate string
 
+type data struct {
+	Package       internal.Package
+	Substitutions map[string]string
+}
+
 // Template is the representation of a parsed template.
 type Template struct {
 	*template.Template
@@ -37,6 +42,6 @@ func Default() (*Template, error) {
 }
 
 // Render writes the generated code in the io.Writer.
-func (t *Template) Render(wr io.Writer, pkg internal.Package) error {
-	return t.Execute(wr, pkg)
+func (t *Template) Render(wr io.Writer, pkg internal.Package, substitutions map[string]string) error {
+	return t.Execute(wr, data{pkg, substitutions})
 }

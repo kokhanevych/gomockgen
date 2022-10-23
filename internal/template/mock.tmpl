@@ -1,19 +1,31 @@
-package {{.Name}}
+{{$s := .Substitutions -}}
+package {{.Package.Name}}
 
 import (	
 	"github.com/stretchr/testify/mock"
-{{- range .Imports}}
+{{- range .Package.Imports}}
 	"{{.Path}}"{{end}}
 )
 
-{{range $interface := .Interfaces}}
-// {{.Name}} is a mock.
+{{range $interface := .Package.Interfaces}}
+{{- $k := printf "%sReceiver" .Name }}
+{{- $receiver := index $s $k}}
+{{- $receiver := or $receiver "m"}}
+{{- $k := printf "%sComment" .Name }}
+{{- $comment := index $s $k}}
+// {{if $comment}}{{$comment}}{{else}}{{.Name}} is a mock.{{end}}
 type {{.Name}} struct { mock.Mock }
 
 {{range .Methods}}
 // {{.Name}} is a mocked method on {{$interface.Name}}.
-func (m *{{$interface.Name}}) {{.Name}}({{range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}} {{$p.Type}}{{end}}) ({{range $index, $r := .Results}}{{if $index}}, {{end}}{{$r.Type}}{{end}}) {
-{{if .Results}}args := {{end}}m.Called({{range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}}{{end}})
+func ({{$receiver}} *{{$interface.Name}}) {{.Name}}(
+	{{- range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}} {{$p.Type}}{{end -}}
+) (
+	{{- range $index, $r := .Results}}{{if $index}}, {{end}}{{$r.Type}}{{end -}}
+) {
+	{{if .Results}}args := {{end}}{{$receiver}}.Called(
+		{{- range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}}{{end -}}
+	)
 {{- if .Results}}
 	return {{range $index, $r := .Results}}
 		{{- if $index}}, {{end}}
@@ -32,13 +44,13 @@ type {{$interface.Name}}Expectations func(*{{$interface.Name}})
 
 // New{{$interface.Name}} returns a new {{$interface.Name}} mock.
 func New{{$interface.Name}}(expect ...{{$interface.Name}}Expectations) *{{$interface.Name}} {
-	m := &{{$interface.Name}}{}
+	{{$receiver}} := &{{$interface.Name}}{}
 	for _, e := range expect {
 		if e != nil {
-			e(m)
+			e({{$receiver}})
 		}
 	}
-	return m
+	return {{$receiver}}
 }
 
 {{end}}
