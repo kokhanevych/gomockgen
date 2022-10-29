@@ -4,7 +4,7 @@ Mock generator for Go interfaces based on text/template
 ## Installation
 
 ```sh
-$ go install github.com/kokhanevych/gomockgen
+$ go install github.com/kokhanevych/gomockgen@latest
 ```
 
 ## Usage
