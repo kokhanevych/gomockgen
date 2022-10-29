@@ -8,15 +8,15 @@ import (
 )
 
 {{range $interface := .Package.Interfaces}}
-{{- $k := printf "%sReceiver" .Name }}
+{{- $k := printf "%sReceiver" .Name}}
 {{- $receiver := index $s $k}}
 {{- $receiver := or $receiver "m"}}
-{{- $k := printf "%sComment" .Name }}
-{{- $comment := index $s $k}}
+{{- $k := printf "%sComment" .Name}}
+{{- $comment := index $s $k -}}
 // {{if $comment}}{{$comment}}{{else}}{{.Name}} is a mock.{{end}}
 type {{.Name}} struct { mock.Mock }
 
-{{range .Methods}}
+{{range .Methods -}}
 // {{.Name}} is a mocked method on {{$interface.Name}}.
 func ({{$receiver}} *{{$interface.Name}}) {{.Name}}(
 	{{- range $index, $p := .Parameters}}{{if $index}}, {{end}}{{$p.Name}} {{$p.Type}}{{end -}}
@@ -37,20 +37,6 @@ func ({{$receiver}} *{{$interface.Name}}) {{.Name}}(
 	{{- end}}
 {{- end}}
 }
-{{end}}
-
-// {{$interface.Name}}Expectations describes expectations onto the mocked interface.
-type {{$interface.Name}}Expectations func(*{{$interface.Name}})
-
-// New{{$interface.Name}} returns a new {{$interface.Name}} mock.
-func New{{$interface.Name}}(expect ...{{$interface.Name}}Expectations) *{{$interface.Name}} {
-	{{$receiver}} := &{{$interface.Name}}{}
-	for _, e := range expect {
-		if e != nil {
-			e({{$receiver}})
-		}
-	}
-	return {{$receiver}}
-}
 
 {{end}}
+{{- end}}
