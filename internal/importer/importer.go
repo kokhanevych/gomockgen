@@ -2,32 +2,35 @@ package importer
 
 import (
 	"fmt"
-	"go/importer"
-	"go/token"
 	"go/types"
+
+	"golang.org/x/tools/go/loader"
 
 	"github.com/kokhanevych/gomockgen/internal"
 )
 
 // Importer resolves import paths to packages.
 type Importer struct {
-	types.Importer
 	qualifier types.Qualifier
 }
 
 // New returns an Importer for importing directly from the source.
 func New(qf types.Qualifier) *Importer {
-	return &Importer{importer.ForCompiler(token.NewFileSet(), "source", nil), qf}
+	return &Importer{qf}
 }
 
 // Parse returns the package for the given import path with filtered interfaces.
 func (im *Importer) Parse(importPath string, interfaces ...string) (internal.Package, error) {
-	pkg, err := im.Importer.Import(importPath)
+	var conf loader.Config
+
+	conf.Import(importPath)
+
+	prog, err := conf.Load()
 	if err != nil {
 		return internal.Package{}, err
 	}
 
-	return im.toPackage(pkg, interfaces)
+	return im.toPackage(prog.Package(importPath).Pkg, interfaces)
 }
 
 func (im *Importer) toPackage(pkg *types.Package, interfaceNames []string) (r internal.Package, err error) {
