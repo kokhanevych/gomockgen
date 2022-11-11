@@ -53,7 +53,12 @@ func (g *Generator) Generate(importPath string, out io.Writer, options Options, 
 		return err
 	}
 
-	r, err := imports.Process(options.FileName, b.Bytes(), nil)
+	n := options.FileName
+	if n == "" {
+		n = "mock.go"
+	}
+
+	r, err := imports.Process(n, b.Bytes(), nil)
 	if err != nil {
 		return err
 	}
