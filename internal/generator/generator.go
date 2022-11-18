@@ -74,8 +74,9 @@ func (g *Generator) parse(importPath string, options Options, interfaces ...stri
 		return internal.Package{}, err
 	}
 
-	if options.MockPackage != "" {
+	if options.MockPackage != "" && pkg.Name != options.MockPackage {
 		pkg.Name = options.MockPackage
+		pkg.Imports = append(pkg.Imports, internal.Import{Path: importPath})
 	}
 
 	for i, iface := range pkg.Interfaces {
