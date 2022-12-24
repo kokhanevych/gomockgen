@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go/types"
 
-	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/go/packages"
 
 	"github.com/kokhanevych/gomockgen/internal"
 )
@@ -21,16 +21,24 @@ func New(qf types.Qualifier) *Importer {
 
 // Parse returns the package for the given import path with filtered interfaces.
 func (im *Importer) Parse(importPath string, interfaces ...string) (internal.Package, error) {
-	var conf loader.Config
+	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedImports}
 
-	conf.Import(importPath)
-
-	prog, err := conf.Load()
+	pkgs, err := packages.Load(cfg, importPath)
 	if err != nil {
 		return internal.Package{}, err
 	}
 
-	return im.toPackage(prog.Package(importPath).Pkg, interfaces)
+	if len(pkgs) != 1 {
+		return internal.Package{}, fmt.Errorf("package %s not found", importPath)
+	}
+
+	pkg := pkgs[0]
+
+	if len(pkg.Errors) > 0 {
+		return internal.Package{}, pkg.Errors[0]
+	}
+
+	return im.toPackage(pkg.Types, interfaces)
 }
 
 func (im *Importer) toPackage(pkg *types.Package, interfaceNames []string) (r internal.Package, err error) {
