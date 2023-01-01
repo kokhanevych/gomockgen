@@ -12,18 +12,17 @@ import (
 // Importer resolves import paths to packages.
 type Importer struct {
 	qualifier types.Qualifier
+	config    *packages.Config
 }
 
 // New returns an Importer for importing directly from the source.
 func New(qf types.Qualifier) *Importer {
-	return &Importer{qf}
+	return &Importer{qf, &packages.Config{Mode: packages.NeedTypes | packages.NeedImports}}
 }
 
 // Parse returns the package for the given import path with filtered interfaces.
 func (im *Importer) Parse(importPath string, interfaces ...string) (internal.Package, error) {
-	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedImports}
-
-	pkgs, err := packages.Load(cfg, importPath)
+	pkgs, err := packages.Load(im.config, importPath)
 	if err != nil {
 		return internal.Package{}, err
 	}
