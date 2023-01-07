@@ -1,4 +1,7 @@
 # gomockgen
+
+[![Go](https://github.com/kokhanevych/gomockgen/actions/workflows/go.yml/badge.svg)](https://github.com/kokhanevych/gomockgen/actions/workflows/go.yml)
+
 Mock generator for Go interfaces based on text/template
 
 ## Installation
