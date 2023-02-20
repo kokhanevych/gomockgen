@@ -123,7 +123,7 @@ func TestGenerator_Generate(t *testing.T) {
 		name      string
 		args      args
 		expect    func(p *parser, r *renderer)
-		want      string
+		want      []byte
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
@@ -136,7 +136,7 @@ func TestGenerator_Generate(t *testing.T) {
 					_, _ = args.Get(0).(*bytes.Buffer).WriteString("package b")
 				}).Return(nil).Once()
 			},
-			want:      "package b\n",
+			want:      []byte("package b\n"),
 			assertion: assert.NoError,
 		}, {
 			name: "empty args",
@@ -147,7 +147,7 @@ func TestGenerator_Generate(t *testing.T) {
 					_, _ = args.Get(0).(*bytes.Buffer).WriteString("package a")
 				}).Return(nil).Once()
 			},
-			want:      "package a\n",
+			want:      []byte("package a\n"),
 			assertion: assert.NoError,
 		}, {
 			name: "parse error",
@@ -181,12 +181,11 @@ func TestGenerator_Generate(t *testing.T) {
 
 			g := New(p, r)
 
-			var out bytes.Buffer
-			err := g.Generate(tt.args.importPath, &out, tt.args.options, tt.args.interfaces...)
+			got, err := g.Generate(tt.args.importPath, tt.args.options, tt.args.interfaces...)
 
 			mock.AssertExpectationsForObjects(t, p, r)
 			tt.assertion(t, err)
-			assert.Equal(t, tt.want, out.String())
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

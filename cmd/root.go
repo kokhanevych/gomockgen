@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"go/types"
 	"os"
 	"path/filepath"
@@ -37,12 +36,12 @@ var cmd = &cobra.Command{
 
 		g := generator.New(i, t)
 
-		var b bytes.Buffer
-		if err := g.Generate(importPath, &b, options, args[1:]...); err != nil {
+		b, err := g.Generate(importPath, options, args[1:]...)
+		if err != nil {
 			return err
 		}
 
-		return write(options.FileName, b.Bytes())
+		return write(options.FileName, b)
 	},
 }
 

@@ -41,31 +41,23 @@ func New(p Parser, r Renderer) *Generator {
 }
 
 // Generate generates mock implementations of the specified Go interfaces for the given import path.
-func (g *Generator) Generate(importPath string, out io.Writer, options Options, interfaces ...string) error {
+func (g *Generator) Generate(importPath string, options Options, interfaces ...string) ([]byte, error) {
 	pkg, err := g.parse(importPath, options, interfaces...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var b bytes.Buffer
-
 	if err := g.renderer.Render(&b, pkg, options.Substitutions); err != nil {
-		return err
+		return nil, err
 	}
 
-	n := options.FileName
-	if n == "" {
-		n = "mock.go"
-	}
-
-	r, err := imports.Process(n, b.Bytes(), nil)
+	r, err := imports.Process(options.FileName, b.Bytes(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	out.Write(r)
-
-	return nil
+	return r, nil
 }
 
 func (g *Generator) parse(importPath string, options Options, interfaces ...string) (internal.Package, error) {
