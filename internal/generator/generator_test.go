@@ -76,8 +76,7 @@ func TestGenerator_Generate(t *testing.T) {
 						Variadic:   true,
 					},
 					{
-						Name: "Print",
-
+						Name:       "Print",
 						Parameters: []internal.Variable{{Name: "p0", Type: "io.Writer"}, {Name: "p1", Type: "[]byte"}},
 						Results:    []internal.Variable{{Name: "n", Type: "int"}, {Name: "err", Type: "error"}},
 					},
