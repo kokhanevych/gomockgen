@@ -75,7 +75,7 @@ func TestDefault(t *testing.T) {
 func TestTemplate_Render(t *testing.T) {
 	pkg := internal.Package{
 		Name:    "b",
-		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Path: "io"}},
+		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Alias: "io2", Path: "io"}},
 		Interfaces: []internal.Interface{
 			{
 				Name: "I1",
@@ -88,7 +88,7 @@ func TestTemplate_Render(t *testing.T) {
 					},
 					{
 						Name:       "Print",
-						Parameters: []internal.Variable{{Name: "p0", Type: "io.Writer"}, {Name: "p1", Type: "[]byte"}},
+						Parameters: []internal.Variable{{Name: "p0", Type: "io2.Writer"}, {Name: "p1", Type: "[]byte"}},
 						Results:    []internal.Variable{{Name: "n", Type: "int"}, {Name: "err", Type: "error"}},
 					},
 				},
@@ -103,7 +103,7 @@ func TestTemplate_Render(t *testing.T) {
 import (	
 	"github.com/stretchr/testify/mock"
 	"golang.org/fake/b"
-	"io"
+	io2 "io"
 )
 
 // I1 is a mock.
@@ -116,7 +116,7 @@ func (i *I1) F(b B, args ...string) (error) {
 }
 
 // Print is a mocked method on I1.
-func (i *I1) Print(p0 io.Writer, p1 []byte) (int, error) {
+func (i *I1) Print(p0 io2.Writer, p1 []byte) (int, error) {
 	args := i.Called(p0, p1)
 	return args.Int(0), args.Error(1)
 }

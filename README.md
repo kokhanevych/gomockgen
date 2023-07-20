@@ -121,7 +121,7 @@ package {{.Package.Name}}
 import (	
 	"github.com/stretchr/testify/mock"
 {{- range .Package.Imports}}
-	"{{.Path}}"{{end}}
+	{{if .Alias}}{{.Alias}} {{end}}"{{.Path}}"{{end}}
 )
 
 {{range $interface := .Package.Interfaces}}

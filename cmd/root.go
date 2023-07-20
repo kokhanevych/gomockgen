@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"go/types"
 	"os"
 	"path/filepath"
 
@@ -59,18 +58,18 @@ func Execute() error {
 }
 
 func newImporter(importPath, fileName, mockPackage string) (i *importer.Importer, err error) {
-	var qf types.Qualifier
+	var qf importer.Qualifier
 
 	switch {
 	case fileName != "":
-		qf, err = importer.NewDirectoryQualifier(filepath.Dir(fileName))
+		qf, err = importer.NewPackageDirectoryQualifier(filepath.Dir(fileName))
 		if err != nil {
 			return nil, err
 		}
 	case mockPackage != "":
 		qf = importer.NewPackageNameQualifier(mockPackage)
 	default:
-		qf = importer.NewImportPathQualifier(importPath)
+		qf = importer.NewPackagePathQualifier(importPath)
 	}
 
 	return importer.New(qf), nil

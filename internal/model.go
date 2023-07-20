@@ -2,8 +2,9 @@ package internal
 
 // Import represents an imported Go package.
 type Import struct {
-	Name string
-	Path string
+	Name  string
+	Alias string
+	Path  string
 }
 
 // Variable represents a Go variable.

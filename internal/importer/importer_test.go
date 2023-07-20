@@ -2,7 +2,6 @@ package importer
 
 import (
 	"go/build"
-	"go/types"
 	"path/filepath"
 	"testing"
 
@@ -18,9 +17,11 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 	e := packagestest.Export(t, exporter, []packagestest.Module{{
 		Name: "golang.org/fake",
 		Files: map[string]interface{}{
-			"a/a.go": `package a; import "io"; import "golang.org/fake/b"; type I1 interface { io.Writer; F(b b.B, args ...string) error }; type I2 interface {}`,
-			"b/b.go": `package b; type B string`,
-			"c/c.go": `package c; import "io"; import "golang.org/fake/b"; type I interface { F(b b.B, w io.Writer) }`,
+			"a/a.go": `package a; import "io"; import "golang.org/fake/b"; import bv2 "golang.org/fake/b/v2"; ` +
+				`type I1 interface { io.Writer; F(b b.B, b2 bv2.B, args ...string) error }; type I2 interface {}`,
+			"b/b.go":    `package b; type B string`,
+			"b/v2/b.go": `package b; type B string`,
+			"c/c.go":    `package c; import "io"; import "golang.org/fake/b"; type I interface { F(b b.B, w io.Writer) }`,
 		}}})
 	defer e.Cleanup()
 
@@ -34,21 +35,25 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 		dir = filepath.Join(e.Config.Dir, "b")
 	}
 
-	qf, err := NewDirectoryQualifier(dir)
+	qf, err := NewPackageDirectoryQualifier(dir)
 	require.NoError(t, err)
 
 	pkgA := internal.Package{
 		Name:    "a",
-		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Path: "io"}},
+		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "b", Alias: "b2", Path: "golang.org/fake/b/v2"}},
 		Interfaces: []internal.Interface{
 			{
 				Name: "I1",
 				Methods: []internal.Method{
 					{
-						Name:       "F",
-						Parameters: []internal.Variable{{Name: "b", Type: "golang.org/fake/b.B"}, {Name: "args", Type: "[]string"}},
-						Results:    []internal.Variable{{Type: "error"}},
-						Variadic:   true,
+						Name: "F",
+						Parameters: []internal.Variable{
+							{Name: "b", Type: "b.B"},
+							{Name: "b2", Type: "b2.B"},
+							{Name: "args", Type: "[]string"},
+						},
+						Results:  []internal.Variable{{Type: "error"}},
+						Variadic: true,
 					},
 					{
 						Name:       "Write",
@@ -64,7 +69,7 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 
 	pkgC := internal.Package{
 		Name:    "c",
-		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Path: "io"}},
+		Imports: []internal.Import{{Name: "io", Path: "io"}},
 		Interfaces: []internal.Interface{
 			{
 				Name: "I",
@@ -79,7 +84,7 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 	}
 
 	type args struct {
-		qualifier  types.Qualifier
+		qualifier  Qualifier
 		importPath string
 		interfaces []string
 	}
@@ -91,12 +96,12 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 	}{
 		{
 			name:      "nominal",
-			args:      args{nil, "golang.org/fake/a", []string{"I1", "I2"}},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/a", []string{"I1", "I2"}},
 			want:      pkgA,
 			assertion: assert.NoError,
 		}, {
 			name:      "package import path qualifier",
-			args:      args{NewImportPathQualifier("golang.org/fake/b"), "golang.org/fake/c", nil},
+			args:      args{NewPackagePathQualifier("golang.org/fake/b"), "golang.org/fake/c", nil},
 			want:      pkgC,
 			assertion: assert.NoError,
 		}, {
@@ -111,28 +116,28 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 			assertion: assert.NoError,
 		}, {
 			name:      "no interface filtering",
-			args:      args{nil, "golang.org/fake/a", nil},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/a", nil},
 			want:      pkgA,
 			assertion: assert.NoError,
 		}, {
 			name:      "package not found",
-			args:      args{nil, "golang.org/fake", nil},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake", nil},
 			assertion: assert.Error,
 		}, {
 			name:      "interface not found",
-			args:      args{nil, "golang.org/fake/a", []string{"I3"}},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/a", []string{"I3"}},
 			assertion: assert.Error,
 		}, {
 			name:      "multiple packages found",
-			args:      args{nil, "golang.org/fake...", nil},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake...", nil},
 			assertion: assert.Error,
 		}, {
 			name:      "not interface",
-			args:      args{nil, "golang.org/fake/b", []string{"B"}},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/b", []string{"B"}},
 			assertion: assert.Error,
 		}, {
 			name:      "no interfaces",
-			args:      args{nil, "golang.org/fake/b", nil},
+			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/b", nil},
 			want:      internal.Package{Name: "b"},
 			assertion: assert.NoError,
 		},

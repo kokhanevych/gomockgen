@@ -9,14 +9,20 @@ import (
 	"github.com/kokhanevych/gomockgen/internal"
 )
 
+// Qualifier controls how named package-level objects are printed.
+type Qualifier interface {
+	Qualify(pkg *types.Package) string
+	Imports() []internal.Import
+}
+
 // Importer resolves import paths to packages.
 type Importer struct {
-	qualifier types.Qualifier
+	qualifier Qualifier
 	config    *packages.Config
 }
 
 // New returns an Importer for importing directly from the source.
-func New(qf types.Qualifier) *Importer {
+func New(qf Qualifier) *Importer {
 	return &Importer{qf, &packages.Config{Mode: packages.NeedTypes | packages.NeedImports}}
 }
 
@@ -50,9 +56,7 @@ func (im *Importer) toPackage(pkg *types.Package, interfaceNames []string) (r in
 		return internal.Package{}, err
 	}
 
-	for _, i := range pkg.Imports() {
-		r.Imports = append(r.Imports, im.toImport(i))
-	}
+	r.Imports = im.qualifier.Imports()
 
 	return r, nil
 }
@@ -118,13 +122,6 @@ func (im *Importer) toMethod(f *types.Func) internal.Method {
 func (im *Importer) toVariable(v *types.Var) internal.Variable {
 	return internal.Variable{
 		Name: v.Name(),
-		Type: types.TypeString(v.Type(), im.qualifier),
-	}
-}
-
-func (im *Importer) toImport(p *types.Package) internal.Import {
-	return internal.Import{
-		Name: p.Name(),
-		Path: p.Path(),
+		Type: types.TypeString(v.Type(), im.qualifier.Qualify),
 	}
 }

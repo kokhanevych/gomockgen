@@ -39,7 +39,7 @@ func TestGenerator_Generate(t *testing.T) {
 	newPkg := func() internal.Package {
 		return internal.Package{
 			Name:    "a",
-			Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Path: "io"}},
+			Imports: []internal.Import{{Name: "io", Path: "io"}},
 			Interfaces: []internal.Interface{
 				{
 					Name: "I1",
@@ -64,7 +64,7 @@ func TestGenerator_Generate(t *testing.T) {
 	}
 	pkgB := internal.Package{
 		Name:    "b",
-		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Path: "io"}, {Path: importPath}},
+		Imports: []internal.Import{{Name: "io", Path: "io"}},
 		Interfaces: []internal.Interface{
 			{
 				Name: "I1",
@@ -88,7 +88,7 @@ func TestGenerator_Generate(t *testing.T) {
 	}
 	pkgA := internal.Package{
 		Name:    "a",
-		Imports: []internal.Import{{Name: "b", Path: "golang.org/fake/b"}, {Name: "io", Path: "io"}},
+		Imports: []internal.Import{{Name: "io", Path: "io"}},
 		Interfaces: []internal.Interface{
 			{
 				Name: "I1",
