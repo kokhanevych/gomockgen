@@ -2,12 +2,77 @@ package importer
 
 import (
 	"fmt"
-	"go/build"
 	"go/types"
 	"path/filepath"
 
+	"golang.org/x/tools/go/packages"
+
 	"github.com/kokhanevych/gomockgen/internal"
 )
+
+// QualifierBuilder builds a qualifier.
+type QualifierBuilder struct {
+	env         []string
+	packageDir  string
+	packageName string
+	packagePath string
+}
+
+// WithPackageDir sets the package directory to use for the qualifier.
+func (b *QualifierBuilder) WithPackageDir(dir string) *QualifierBuilder {
+	b.packageDir = dir
+	return b
+}
+
+// WithPackageName sets the package name to use for the qualifier.
+func (b *QualifierBuilder) WithPackageName(name string) *QualifierBuilder {
+	b.packageName = name
+	return b
+}
+
+// WithPackagePath sets the package path to use for the qualifier.
+func (b *QualifierBuilder) WithPackagePath(path string) *QualifierBuilder {
+	b.packagePath = path
+	return b
+}
+
+// Build returns a new qualifier.
+func (b *QualifierBuilder) Build() (Qualifier, error) {
+	p := b.packagePath
+
+	switch {
+	case b.packageDir != "":
+		var err error
+		if p, err = b.path(b.packageDir); err != nil {
+			return nil, err
+		}
+	case b.packageName != "":
+		return &packageNameQualifier{
+			qualifier:   newQualifier(),
+			packageName: b.packageName,
+		}, nil
+	}
+
+	return &packagePathQualifier{
+		qualifier:   newQualifier(),
+		packagePath: p,
+	}, nil
+}
+
+func (b *QualifierBuilder) path(dir string) (string, error) {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+
+	cfg := &packages.Config{Mode: packages.NeedName, Dir: dir, Env: b.env}
+	pkgs, err := packages.Load(cfg, dir)
+	if err == nil && len(pkgs) == 1 {
+		return pkgs[0].PkgPath, nil
+	}
+
+	return "", nil
+}
 
 type qualifier struct {
 	nameCount     map[string]int
@@ -57,22 +122,14 @@ func (q *qualifier) alias(name string) string {
 	return fmt.Sprintf("%s%d", name, c)
 }
 
-// PackagePathQualifier represents a qualifier using the package path.
-type PackagePathQualifier struct {
+// packagePathQualifier represents a qualifier using the package path.
+type packagePathQualifier struct {
 	qualifier
 	packagePath string
 }
 
-// NewPackagePathQualifier returns a new PackagePathQualifier.
-func NewPackagePathQualifier(path string) *PackagePathQualifier {
-	return &PackagePathQualifier{
-		qualifier:   newQualifier(),
-		packagePath: path,
-	}
-}
-
 // Qualify controls how named package-level objects are printed.
-func (q *PackagePathQualifier) Qualify(pkg *types.Package) string {
+func (q *packagePathQualifier) Qualify(pkg *types.Package) string {
 	if pkg.Path() == q.packagePath {
 		return ""
 	}
@@ -80,62 +137,15 @@ func (q *PackagePathQualifier) Qualify(pkg *types.Package) string {
 	return q.qualify(pkg)
 }
 
-// PackageNameQualifier represents a qualifier using the package name.
-type PackageNameQualifier struct {
+// packageNameQualifier represents a qualifier using the package name.
+type packageNameQualifier struct {
 	qualifier
 	packageName string
 }
 
-// NewPackageNameQualifier returns a new PackageNameQualifier.
-func NewPackageNameQualifier(name string) *PackageNameQualifier {
-	return &PackageNameQualifier{
-		qualifier:   newQualifier(),
-		packageName: name,
-	}
-}
-
 // Qualify controls how named package-level objects are printed.
-func (q *PackageNameQualifier) Qualify(pkg *types.Package) string {
+func (q *packageNameQualifier) Qualify(pkg *types.Package) string {
 	if pkg.Name() == q.packageName {
-		return ""
-	}
-
-	return q.qualify(pkg)
-}
-
-// PackageDirectoryQualifier represents a qualifier using the package directory.
-type PackageDirectoryQualifier struct {
-	qualifier
-	dirs             map[string]string
-	packageDirectory string
-}
-
-// NewPackageDirectoryQualifier returns a new PackageDirectoryQualifier.
-func NewPackageDirectoryQualifier(dir string) (*PackageDirectoryQualifier, error) {
-	dir, err := filepath.Abs(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PackageDirectoryQualifier{
-		qualifier:        newQualifier(),
-		dirs:             make(map[string]string),
-		packageDirectory: dir,
-	}, nil
-}
-
-// Qualify controls how named package-level objects are printed.
-func (q *PackageDirectoryQualifier) Qualify(pkg *types.Package) string {
-	if q.dirs[pkg.Path()] == "" {
-		p, err := build.Import(pkg.Path(), "", build.FindOnly)
-		if err != nil {
-			panic(err)
-		}
-
-		q.dirs[pkg.Path()] = p.Dir
-	}
-
-	if q.dirs[pkg.Path()] == q.packageDirectory {
 		return ""
 	}
 

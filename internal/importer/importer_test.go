@@ -1,7 +1,6 @@
 package importer
 
 import (
-	"go/build"
 	"path/filepath"
 	"testing"
 
@@ -27,16 +26,10 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 
 	var dir string
 	if exporter == packagestest.GOPATH {
-		t.Setenv("GO111MODULE", "off")
-		build.Default.GOPATH = filepath.Dir(e.Config.Dir)
 		dir = filepath.Join(e.Config.Dir, "golang.org", "fake", "b")
 	} else {
-		build.Default.Dir = e.Config.Dir
 		dir = filepath.Join(e.Config.Dir, "b")
 	}
-
-	qf, err := NewPackageDirectoryQualifier(dir)
-	require.NoError(t, err)
 
 	pkgA := internal.Package{
 		Name:    "a",
@@ -84,67 +77,81 @@ func testImporter_Parse(t *testing.T, exporter packagestest.Exporter) {
 	}
 
 	type args struct {
-		qualifier  Qualifier
 		importPath string
 		interfaces []string
 	}
 	tests := []struct {
-		name      string
-		args      args
-		want      internal.Package
-		assertion assert.ErrorAssertionFunc
+		name        string
+		packageDir  string
+		packageName string
+		packagePath string
+		args        args
+		want        internal.Package
+		assertion   assert.ErrorAssertionFunc
 	}{
 		{
-			name:      "nominal",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/a", []string{"I1", "I2"}},
-			want:      pkgA,
-			assertion: assert.NoError,
+			name:        "nominal",
+			packagePath: "golang.org/fake/a",
+			args:        args{"golang.org/fake/a", []string{"I1", "I2"}},
+			want:        pkgA,
+			assertion:   assert.NoError,
 		}, {
-			name:      "package import path qualifier",
-			args:      args{NewPackagePathQualifier("golang.org/fake/b"), "golang.org/fake/c", nil},
-			want:      pkgC,
-			assertion: assert.NoError,
+			name:        "package import path qualifier",
+			packagePath: "golang.org/fake/b",
+			args:        args{"golang.org/fake/c", nil},
+			want:        pkgC,
+			assertion:   assert.NoError,
 		}, {
-			name:      "package name qualifier",
-			args:      args{NewPackageNameQualifier("b"), "golang.org/fake/c", nil},
-			want:      pkgC,
-			assertion: assert.NoError,
+			name:        "package name qualifier",
+			packageName: "b",
+			args:        args{"golang.org/fake/c", nil},
+			want:        pkgC,
+			assertion:   assert.NoError,
 		}, {
-			name:      "package directory qualifier",
-			args:      args{qf, "golang.org/fake/c", nil},
-			want:      pkgC,
-			assertion: assert.NoError,
+			name:       "package directory qualifier",
+			packageDir: dir,
+			args:       args{"golang.org/fake/c", nil},
+			want:       pkgC,
+			assertion:  assert.NoError,
 		}, {
-			name:      "no interface filtering",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/a", nil},
-			want:      pkgA,
-			assertion: assert.NoError,
+			name:        "no interface filtering",
+			packagePath: "golang.org/fake/a",
+			args:        args{"golang.org/fake/a", nil},
+			want:        pkgA,
+			assertion:   assert.NoError,
 		}, {
 			name:      "package not found",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake", nil},
+			args:      args{"golang.org/fake", nil},
 			assertion: assert.Error,
 		}, {
 			name:      "interface not found",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/a", []string{"I3"}},
+			args:      args{"golang.org/fake/a", []string{"I3"}},
 			assertion: assert.Error,
 		}, {
 			name:      "multiple packages found",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake...", nil},
+			args:      args{"golang.org/fake...", nil},
 			assertion: assert.Error,
 		}, {
 			name:      "not interface",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/b", []string{"B"}},
+			args:      args{"golang.org/fake/b", []string{"B"}},
 			assertion: assert.Error,
 		}, {
 			name:      "no interfaces",
-			args:      args{NewPackagePathQualifier("golang.org/fake/a"), "golang.org/fake/b", nil},
+			args:      args{"golang.org/fake/b", nil},
 			want:      internal.Package{Name: "b"},
 			assertion: assert.NoError,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			im := New(tt.args.qualifier)
+			b := QualifierBuilder{env: e.Config.Env}
+			qf, err := b.WithPackageDir(tt.packageDir).
+				WithPackageName(tt.packageName).
+				WithPackagePath(tt.packagePath).
+				Build()
+			require.NoError(t, err)
+
+			im := New(qf)
 			im.config.Dir = e.Config.Dir
 			im.config.Env = e.Config.Env
 

@@ -58,18 +58,17 @@ func Execute() error {
 }
 
 func newImporter(importPath, fileName, mockPackage string) (i *importer.Importer, err error) {
-	var qf importer.Qualifier
+	b := &importer.QualifierBuilder{}
 
-	switch {
-	case fileName != "":
-		qf, err = importer.NewPackageDirectoryQualifier(filepath.Dir(fileName))
-		if err != nil {
-			return nil, err
-		}
-	case mockPackage != "":
-		qf = importer.NewPackageNameQualifier(mockPackage)
-	default:
-		qf = importer.NewPackagePathQualifier(importPath)
+	if fileName != "" {
+		b = b.WithPackageDir(filepath.Dir(fileName))
+	}
+
+	qf, err := b.WithPackageName(mockPackage).
+		WithPackagePath(importPath).
+		Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return importer.New(qf), nil
